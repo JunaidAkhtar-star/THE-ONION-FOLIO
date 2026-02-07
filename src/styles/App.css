@@ -1,0 +1,110 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --purple-dark: #8B5CF6;
+  --purple-medium: #A78BFA;
+  --purple-light: #C4B5FD;
+  --purple-lighter: #DDD6FE;
+  --bg-dark: #0F0B1E;
+  --bg-darker: #0A0715;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+.app {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--bg-darker) 0%, var(--bg-dark) 50%, var(--bg-darker) 100%);
+  color: #FFFFFF;
+}
+
+.starfield-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.content-wrapper {
+  position: relative;
+  z-index: 1;
+  padding-top: 0;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-darker);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--purple-dark) 0%, var(--purple-medium) 100%);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--purple-medium) 0%, var(--purple-light) 100%);
+}
+
+/* Selection */
+::selection {
+  background: rgba(139, 92, 246, 0.3);
+  color: #FFFFFF;
+}
+
+/* Links */
+a {
+  color: var(--purple-light);
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--purple-lighter);
+}
+
+/* Container utility */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* Section title */
+.section-title {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 4rem;
+  color: #FFFFFF;
+  text-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1rem;
+  }
+}
