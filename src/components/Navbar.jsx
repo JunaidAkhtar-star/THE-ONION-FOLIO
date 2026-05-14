@@ -119,7 +119,7 @@ export default function Navbar() {
 
           {/* LinkedIn */}
           <a
-            href="linkedin.com/in/junaid-akhtar-7a525b286"
+            href="https://www.linkedin.com/in/junaid-akhtar-7a525b286/"
             target="_blank"
             rel="noopener noreferrer"
             className="social-icon"
