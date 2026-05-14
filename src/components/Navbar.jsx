@@ -106,7 +106,7 @@ export default function Navbar() {
         <div className="navbar-right">
           {/* GitHub */}
           <a
-            href="https://github.com/yourusername"
+            href="https://github.com/JunaidAkhtar-star"
             target="_blank"
             rel="noopener noreferrer"
             className="social-icon"
