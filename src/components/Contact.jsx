@@ -16,10 +16,10 @@ export default function Contact() {
 
     emailjs
       .sendForm(
-        "service_lbtr1xq", // e.g. service_123abc
-        "template_1g2dean", // e.g. template_456def
+        "service_lbtr1xq",
+        "template_1g2dean",
         formRef.current,
-        "tVdJPp7sVH-qliNlC" // e.g. PUBLIC_789ghi
+        "tVdJPp7sVH-qliNlC"
       )
       .then(
         (result) => {
@@ -29,7 +29,7 @@ export default function Contact() {
           formRef.current.reset();
         },
         (error) => {
-          console.log("EmailJS error:", error); // <- important
+          console.log("EmailJS error:", error);
           setIsSending(false);
           setStatusMessage("Something went wrong. Please try again ❌");
         }
@@ -115,66 +115,65 @@ export default function Contact() {
             </div>
           </motion.div>
 
-          {/* RIGHT FORM – wrapped with ElectricBorder, logic unchanged */}
+          {/* RIGHT FORM – same card as before, wrapped with electric border but not restyled */}
           <ElectricBorder
-            color="#7df9ff"
-            speed={1}
-            chaos={0.12}
-            thickness={2}
-            style={{ borderRadius: 16 }}
+            color="#5227ff"   // your exact theme color
+            speed={0.4}       // lower = slower movement
+            chaos={0.18}
+            borderRadius={24}
           >
-            <motion.form
-              ref={formRef}
+            <motion.div
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="contact-form"
-              onSubmit={handleSubmit}
             >
-              <div className="form-group">
-                <label htmlFor="name">Name</label>
-                {/* name attribute must match template variables in EmailJS */}
-                <input type="text" id="name" name="user_name" required />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <input type="email" id="email" name="user_email" required />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="subject">Subject</label>
-                <input type="text" id="subject" name="subject" required />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="message">Message</label>
-                <textarea
-                  id="message"
-                  name="message"
-                  rows="5"
-                  required
-                ></textarea>
-              </div>
-
-              <button
-                type="submit"
-                className="submit-btn"
-                disabled={isSending}
+              <form
+                ref={formRef}
+                className="contact-form"
+                onSubmit={handleSubmit}
               >
-                {isSending ? "Sending..." : "Send Message"}
-              </button>
+                <div className="form-group">
+                  <label htmlFor="name">Name</label>
+                  <input type="text" id="name" name="user_name" required />
+                </div>
 
-              {statusMessage && (
-                <p className="contact-status">{statusMessage}</p>
-              )}
-            </motion.form>
+                <div className="form-group">
+                  <label htmlFor="email">Email</label>
+                  <input type="email" id="email" name="user_email" required />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="subject">Subject</label>
+                  <input type="text" id="subject" name="subject" required />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="message">Message</label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    rows="5"
+                    required
+                  ></textarea>
+                </div>
+
+                <button
+                  type="submit"
+                  className="submit-btn"
+                  disabled={isSending}
+                >
+                  {isSending ? "Sending..." : "Send Message"}
+                </button>
+
+                {statusMessage && (
+                  <p className="contact-status">{statusMessage}</p>
+                )}
+              </form>
+            </motion.div>
           </ElectricBorder>
         </div>
       </div>
     </section>
   );
 }
-
-
