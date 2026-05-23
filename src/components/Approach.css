@@ -12,19 +12,19 @@
   padding: 2rem 0;
 }
 
-/* Card base – same size / layout, more “phase card” feel */
+/* Card base layout container */
 .approach-card {
   position: relative;
   background: radial-gradient(circle at top, rgba(167, 139, 250, 0.2), rgba(15, 23, 42, 0.95));
   border: 1px solid rgba(167, 139, 250, 0.35);
   border-radius: 24px;
-  padding: 2.5rem;
+  padding: 0; /* Padding is shifted to the inner PixelCard so canvas spans edge-to-edge */
   min-height: 280px;
   backdrop-filter: blur(12px);
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease;
   cursor: pointer;
   overflow: hidden;
-  transform: translateY(0) scale(1); /* default size */
+  transform: translateY(0) scale(1);
 }
 
 /* subtle glow overlay */
@@ -36,6 +36,7 @@
   opacity: 0;
   transition: opacity 0.4s ease;
   pointer-events: none;
+  z-index: 1;
 }
 
 .approach-card.hovered::before {
@@ -43,16 +44,44 @@
 }
 
 .approach-card.hovered {
-  transform: translateY(-12px) scale(1.04); /* zoom ONLY hovered card */
+  transform: translateY(-12px) scale(1.04);
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.85);
   border-color: rgba(196, 181, 253, 0.9);
 }
 
-/* phase badge like reference */
+/* Override default PixelCard container sizing to fluidly fill our grid slots */
+.approach-pixel-card.pixel-card {
+  width: 100% !important;
+  height: 100% !important;
+  aspect-ratio: auto !important;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  border: none !important;
+  background: transparent !important;
+  padding: 2.5rem;
+  box-sizing: border-box;
+  border-radius: inherit;
+  user-select: auto;
+}
+
+/* Ensure canvas takes up the exact absolute background coordinates without offsetting text */
+.approach-pixel-card .pixel-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Phase badge positioning */
 .approach-phase-tag {
   position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
+  top: -1rem;
+  right: -1rem;
   z-index: 2;
 }
 
@@ -70,7 +99,16 @@
   letter-spacing: 0.08em;
 }
 
-/* inner content */
+/* Inner layout adjustments */
+.approach-content-inner {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .approach-preview,
 .approach-details {
   position: relative;
@@ -80,7 +118,6 @@
   flex-direction: column;
 }
 
-/* default state (not hovered) */
 .approach-preview {
   justify-content: center;
   align-items: flex-start;
@@ -121,7 +158,6 @@
   }
 }
 
-/* hovered state (full content) */
 .approach-details {
   justify-content: flex-start;
 }
@@ -159,7 +195,7 @@
   font-size: 0.8rem;
 }
 
-/* responsive */
+/* Responsive adjustments */
 @media (max-width: 768px) {
   .approach-grid {
     grid-template-columns: 1fr;
@@ -168,6 +204,10 @@
   
   .approach-card {
     min-height: 250px;
+    position: relative;
+  }
+
+  .approach-pixel-card.pixel-card {
     padding: 2rem;
   }
 
@@ -175,4 +215,3 @@
     font-size: 1.45rem;
   }
 }
-
