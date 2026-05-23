@@ -1,13 +1,13 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 
-// --- Inline BlurText Component to resolve the import error ---
+// --- 1. Inline BlurText Component ---
 function BlurText({ text, animateBy = "words", direction = "top", delay = 150, className }) {
   const elements = animateBy === "words" ? text.split(" ") : text.split("");
   const yOffset = direction === "top" ? -20 : 20;
 
   return (
-    <span className={className} style={{ display: 'inline-block' }}>
+    <span className={className} style={{ display: 'inline' }}>
       {elements.map((el, i) => (
         <motion.span
           key={i}
@@ -26,7 +26,314 @@ function BlurText({ text, animateBy = "words", direction = "top", delay = 150, c
   );
 }
 
-// --- CSS Styles embedded with counter-clockwise rotation ---
+// --- 2. Inline TrueFocus Component ---
+const TrueFocus = ({
+  sentence = 'True Focus',
+  separator = ' ',
+  manualMode = false,
+  blurAmount = 5,
+  borderColor = '#a78bfa',
+  glowColor = 'rgba(139, 92, 246, 0.6)',
+  animationDuration = 0.8,
+  pauseBetweenAnimations = 1.2
+}) => {
+  const words = sentence.split(separator);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [lastActiveIndex, setLastActiveIndex] = useState(null);
+  const containerRef = useRef(null);
+  const wordRefs = useRef([]);
+  const [focusRect, setFocusRect] = useState({ x: 0, y: 0, width: 0, height: 0 });
+
+  useEffect(() => {
+    if (!manualMode) {
+      const interval = setInterval(
+        () => {
+          setCurrentIndex(prev => (prev + 1) % words.length);
+        },
+        (animationDuration + pauseBetweenAnimations) * 1000
+      );
+
+      return () => clearInterval(interval);
+    }
+  }, [manualMode, animationDuration, pauseBetweenAnimations, words.length]);
+
+  useEffect(() => {
+    if (currentIndex === null || currentIndex === -1) return;
+    if (!wordRefs.current[currentIndex] || !containerRef.current) return;
+
+    const parentRect = containerRef.current.getBoundingClientRect();
+    const activeRect = wordRefs.current[currentIndex].getBoundingClientRect();
+
+    setFocusRect({
+      x: activeRect.left - parentRect.left,
+      y: activeRect.top - parentRect.top,
+      width: activeRect.width,
+      height: activeRect.height
+    });
+  }, [currentIndex, words.length]);
+
+  const handleMouseEnter = index => {
+    if (manualMode) {
+      setLastActiveIndex(index);
+      setCurrentIndex(index);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (manualMode) {
+      setCurrentIndex(lastActiveIndex);
+    }
+  };
+
+  return (
+    <div className="focus-container" ref={containerRef}>
+      {words.map((word, index) => {
+        const isActive = index === currentIndex;
+        return (
+          <span
+            key={index}
+            ref={el => (wordRefs.current[index] = el)}
+            className={`focus-word ${manualMode ? 'manual' : ''} ${isActive && !manualMode ? 'active' : ''}`}
+            style={{
+              filter: isActive ? `blur(0px)` : `blur(${blurAmount}px)`,
+              '--border-color': borderColor,
+              '--glow-color': glowColor,
+              transition: `filter ${animationDuration}s ease`
+            }}
+            onMouseEnter={() => handleMouseEnter(index)}
+            onMouseLeave={handleMouseLeave}
+          >
+            {word}
+          </span>
+        );
+      })}
+
+      <motion.div
+        className="focus-frame"
+        animate={{
+          x: focusRect.x,
+          y: focusRect.y,
+          width: focusRect.width,
+          height: focusRect.height,
+          opacity: currentIndex >= 0 ? 1 : 0
+        }}
+        transition={{
+          duration: animationDuration
+        }}
+        style={{
+          '--border-color': borderColor,
+          '--glow-color': glowColor
+        }}
+      >
+        <span className="corner top-left"></span>
+        <span className="corner top-right"></span>
+        <span className="corner bottom-left"></span>
+        <span className="corner bottom-right"></span>
+      </motion.div>
+    </div>
+  );
+};
+
+// --- 3. Pure-JS Physics-Based FallingText (Removes Matter-JS dependency entirely) ---
+const FallingText = ({
+  className = '',
+  text = '',
+  highlightWords = [],
+  highlightClass = 'highlighted',
+  trigger = 'auto',
+  gravity = 0.6,
+  fontSize = '1rem'
+}) => {
+  const containerRef = useRef(null);
+  const textRef = useRef(null);
+  const [effectStarted, setEffectStarted] = useState(false);
+  const animationFrameRef = useRef(null);
+  const wordPhysicsRef = useRef([]);
+
+  useEffect(() => {
+    if (!textRef.current) return;
+    const words = text.split(' ');
+    const newHTML = words
+      .map(word => {
+        const isHighlighted = highlightWords.some(hw => word.toLowerCase().includes(hw.toLowerCase()));
+        return `<span class="word ${isHighlighted ? highlightClass : ''}">${word}</span>`;
+      })
+      .join(' ');
+    textRef.current.innerHTML = newHTML;
+  }, [text, highlightWords, highlightClass]);
+
+  useEffect(() => {
+    if (trigger === 'auto') {
+      setEffectStarted(true);
+      return;
+    }
+    if (trigger === 'scroll' && containerRef.current) {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setEffectStarted(true);
+            observer.disconnect();
+          }
+        },
+        { threshold: 0.1 }
+      );
+      observer.observe(containerRef.current);
+      return () => observer.disconnect();
+    }
+  }, [trigger]);
+
+  useEffect(() => {
+    if (!effectStarted || !containerRef.current) return;
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+
+    const wordSpans = textRef.current.querySelectorAll('.word');
+    
+    // Set up the high-performance pure-JS physics profiles for each word
+    const physicsObjects = [...wordSpans].map((elem) => {
+      const rect = elem.getBoundingClientRect();
+      const x = rect.left - containerRect.left + rect.width / 2;
+      const y = rect.top - containerRect.top + rect.height / 2;
+
+      // Position absolute so they drop cleanly within the parent
+      elem.style.position = 'absolute';
+      elem.style.left = `${x}px`;
+      elem.style.top = `${y}px`;
+
+      return {
+        elem,
+        width: rect.width,
+        height: rect.height,
+        x,
+        y,
+        vx: (Math.random() - 0.5) * 4,
+        vy: (Math.random() - 0.5) * 1.5,
+        angle: 0,
+        angularVelocity: (Math.random() - 0.5) * 0.08,
+        bounceCount: 0
+      };
+    });
+
+    wordPhysicsRef.current = physicsObjects;
+
+    const runPhysicsLoop = () => {
+      const currentContainer = containerRef.current;
+      if (!currentContainer) return;
+
+      const rectBounds = currentContainer.getBoundingClientRect();
+      const boundsWidth = rectBounds.width;
+      const boundsHeight = rectBounds.height;
+
+      wordPhysicsRef.current.forEach((obj) => {
+        // Apply Gravity
+        obj.vy += gravity;
+
+        // Apply Friction & Air Resistance
+        obj.vx *= 0.99;
+        obj.vy *= 0.995;
+
+        // Update Position & Angle
+        obj.x += obj.vx;
+        obj.y += obj.vy;
+        obj.angle += obj.angularVelocity;
+
+        // Boundary Collision Logic
+        const halfW = obj.width / 2;
+        const halfH = obj.height / 2;
+
+        // Floor collision with bouncy restitution
+        if (obj.y + halfH > boundsHeight) {
+          obj.y = boundsHeight - halfH;
+          obj.vy = -obj.vy * 0.65; // restitution coefficient
+          obj.vx *= 0.7; // kinetic friction on impact
+          obj.angularVelocity *= 0.6;
+        }
+
+        // Left wall collision
+        if (obj.x - halfW < 0) {
+          obj.x = halfW;
+          obj.vx = -obj.vx * 0.65;
+        }
+
+        // Right wall collision
+        if (obj.x + halfW > boundsWidth) {
+          obj.x = boundsWidth - halfW;
+          obj.vx = -obj.vx * 0.65;
+        }
+
+        // Apply properties to the DOM
+        obj.elem.style.left = `${obj.x}px`;
+        obj.elem.style.top = `${obj.y}px`;
+        obj.elem.style.transform = `translate(-50%, -50%) rotate(${obj.angle}rad)`;
+      });
+
+      animationFrameRef.current = requestAnimationFrame(runPhysicsLoop);
+    };
+
+    animationFrameRef.current = requestAnimationFrame(runPhysicsLoop);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [effectStarted, gravity]);
+
+  const handleTrigger = () => {
+    if (!effectStarted && (trigger === 'click' || trigger === 'hover')) {
+      setEffectStarted(true);
+    }
+  };
+
+  // Allow users to throw words on hover or click
+  const handleMouseMove = (e) => {
+    if (!effectStarted || !containerRef.current) return;
+    const parentRect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - parentRect.left;
+    const mouseY = e.clientY - parentRect.top;
+
+    wordPhysicsRef.current.forEach((obj) => {
+      const dx = obj.x - mouseX;
+      const dy = obj.y - mouseY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      // Apply push force if cursor is close to words
+      if (dist < 45) {
+        const force = (45 - dist) * 0.35;
+        obj.vx += (dx / dist) * force;
+        obj.vy += (dy / dist) * force - 1.5; // Lift up slightly on touch
+        obj.angularVelocity += (Math.random() - 0.5) * 0.15;
+      }
+    });
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className={`falling-text-container ${className}`}
+      onClick={trigger === 'click' ? handleTrigger : undefined}
+      onMouseEnter={trigger === 'hover' ? handleTrigger : undefined}
+      onMouseMove={handleMouseMove}
+      style={{
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+    >
+      <div
+        ref={textRef}
+        className="falling-text-target"
+        style={{
+          fontSize: fontSize,
+          lineHeight: 1.8
+        }}
+      />
+    </div>
+  );
+};
+
+// --- 4. Combined CSS Styles ---
 const cssStyles = `
 .hero-section {
   min-height: 100vh;
@@ -85,6 +392,7 @@ const cssStyles = `
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
   mask-composite: exclude;
   filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.85));
   animation: spin-counter-clockwise 2.8s linear infinite;
@@ -197,18 +505,15 @@ const cssStyles = `
 }
 
 .hero-description {
-  font-size: clamp(1rem, 2vw, 1.15rem);
-  color: #FFFFFF;
-  line-height: 1.8;
   max-width: 650px;
-  opacity: 0.9;
+  opacity: 0.95;
 }
 
 .hero-buttons {
   display: flex;
   gap: 1.5rem;
   flex-wrap: wrap;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
 }
 
 .btn-primary {
@@ -278,8 +583,114 @@ const cssStyles = `
   }
 }
 
+/* === TrueFocus Custom Styles === */
+.focus-container {
+  position: relative;
+  display: inline-flex;
+  gap: 0.25em;
+  justify-content: flex-start;
+  align-items: center;
+  outline: none;
+  user-select: none;
+}
+
+.focus-word {
+  position: relative;
+  font-size: inherit;
+  font-weight: inherit;
+  font-family: inherit;
+  color: #A78BFA;
+  cursor: pointer;
+  transition: filter 0.3s ease, color 0.3s ease;
+  outline: none;
+  user-select: none;
+}
+
+.focus-word.active {
+  filter: blur(0);
+}
+
+.focus-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  box-sizing: content-box;
+  border: none;
+}
+
+.corner {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--border-color, #a78bfa);
+  filter: drop-shadow(0px 0px 4px var(--glow-color, rgba(139, 92, 246, 0.6)));
+  border-radius: 1px;
+  transition: none;
+}
+
+.top-left {
+  top: -6px;
+  left: -6px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.top-right {
+  top: -6px;
+  right: -6px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.bottom-left {
+  bottom: -6px;
+  left: -6px;
+  border-right: none;
+  border-top: none;
+}
+
+.bottom-right {
+  bottom: -6px;
+  right: -6px;
+  border-left: none;
+  border-top: none;
+}
+
+/* === FallingText Custom Styles === */
+.falling-text-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 120px; /* bounds the physical canvas for text drops */
+  cursor: pointer;
+  text-align: left;
+}
+
+.falling-text-target {
+  display: inline-block;
+  color: #FFFFFF;
+}
+
+.word {
+  display: inline-block;
+  margin-right: 6px;
+  user-select: none;
+  transition: filter 0.3s ease, color 0.3s ease;
+}
+
+.word.highlighted-tag {
+  color: #A78BFA;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(167, 139, 250, 0.4);
+}
+
 /* tablet */
 @media (max-width: 968px) {
+  .focus-container {
+    justify-content: center;
+  }
+
   .hero-container {
     grid-template-columns: 1fr;
     gap: 3rem;
@@ -288,6 +699,10 @@ const cssStyles = `
   .hero-left {
     text-align: center;
     align-items: center;
+  }
+
+  .falling-text-container {
+    text-align: center;
   }
   
   .hero-image-container {
@@ -362,7 +777,7 @@ export default function Hero() {
             <span>Frontend Developer & AI Specialist</span>
           </motion.div>
           
-          {/* Heading with inline BlurText animation */}
+          {/* Heading splits into BlurText for normal words, and TrueFocus for 'AI prompting' */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -370,23 +785,40 @@ export default function Hero() {
             className="hero-heading"
           >
             <BlurText
-              text="Turning complex ideas into clean code, optimized via smart AI prompting"
+              text="Turning complex ideas into clean code, optimized via smart"
               animateBy="words"
               direction="top"
               delay={150}
               className="hero-heading"
             />
+            {' '}
+            <TrueFocus 
+              sentence="AI prompting"
+              manualMode={false}
+              blurAmount={4}
+              borderColor="#a78bfa"
+              glowColor="rgba(139, 92, 246, 0.65)"
+              animationDuration={0.8}
+              pauseBetweenAnimations={1.2}
+            />
           </motion.h1>
           
-          <motion.p
+          {/* Animated FallingText replacing standard hero-description paragraph */}
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
             className="hero-description"
           >
-            Turning complex ideas into clean code, optimized via expert AI prompting and
-            protected by ethical hacking practices.
-          </motion.p>
+            <FallingText
+              text="Turning complex ideas into clean code, optimized via expert AI prompting and protected by ethical hacking practices."
+              highlightWords = {["complex", "clean", "AI", "ethical", "hacking"]}
+              highlightClass="word highlighted-tag"
+              trigger="hover"
+              gravity={0.5}
+              fontSize="clamp(1rem, 2vw, 1.15rem)"
+            />
+          </motion.div>
           
           <motion.div
             initial={{ opacity: 0, y: 30 }}
