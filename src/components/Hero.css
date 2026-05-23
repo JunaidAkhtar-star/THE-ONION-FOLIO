@@ -30,34 +30,84 @@
   align-items: center;
 }
 
+/* Base Wrapper adjusted to cleanly house the spinning loader track */
 .hero-image-wrapper {
   position: relative;
   width: 350px;
   height: 350px;
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  /* GPU acceleration hardware setup */
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Glowing Loader element with a clean purple single color comet tail.
+  Uses mask-composite to exclude the center, creating a fully transparent inner ring 
+  so that NO background color is required!
+*/
+.hero-image-loader-border {
+  position: absolute;
+  inset: -6px; /* expands slightly outside to form a border ring */
+  border-radius: 50%;
+  pointer-events: none;
+  padding: 6px; /* controls the thickness of the rotating line */
+  background: conic-gradient(from 0deg, #a78bfa 0%, #8b5cf6 30%, transparent 70%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.85));
+  animation: spin-clockwise 2.8s linear infinite;
+  z-index: 1;
+}
+
+/* Mask gap layer is now fully transparent to support any underlying design */
+.hero-image-inner-mask {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(139, 92, 246, 0.4);
+  background: transparent;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Pause animation on hover */
+.hero-image-wrapper:hover .hero-image-loader-border {
+  animation-play-state: paused;
+}
+
+@keyframes spin-clockwise {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .hero-image-glow {
   position: absolute;
-  top: -20%;
-  left: -20%;
-  width: 140%;
-  height: 140%;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
-  animation: pulse-glow 3s ease-in-out infinite;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, transparent 70%);
+  animation: pulse-glow 4s ease-in-out infinite;
   z-index: -1;
 }
 
 @keyframes pulse-glow {
   0%, 100% {
-    opacity: 0.5;
-    transform: scale(1);
+    opacity: 0.4;
+    transform: scale(0.95);
   }
   50% {
-    opacity: 0.8;
-    transform: scale(1.1);
+    opacity: 0.7;
+    transform: scale(1.05);
   }
 }
 
@@ -66,7 +116,6 @@
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
-  border: 5px solid rgba(167, 139, 250, 0.3);
 }
 
 .hero-image-placeholder {
@@ -179,7 +228,6 @@
 }
 
 /* === Scroll indicator === */
-
 .scroll-indicator {
   position: absolute;
   bottom: 2.5rem;            /* desktop position above bottom edge */
@@ -293,5 +341,3 @@
     height: 9px;
   }
 }
-
-
